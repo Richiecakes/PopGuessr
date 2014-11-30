@@ -94,9 +94,10 @@
         "*tumble weed*",
         "Tough one.",
         "This one's a 50/50.",
-        "Who knows.",
+        "Who knows about this one.",
         "I hope you like crowds",
-        "Why are you doing this?"
+        "Why are you doing this?",
+        "This place is as abandoned as my team"
       ]
 
       var MAX_NUMBER_OF_GUESSES = 5;
@@ -125,10 +126,11 @@
       }
 
       function getRegionCount(callback) {
-        // Dirty hack - gets all regions, will do once at start of code
         var query = new Query();
         var queryTask = new QueryTask("http://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/usa_cbsa/FeatureServer/0");
 
+        // Dirty hack - gets all regions, will do once at start of code
+        // (its a slightly clever hack though)
         query.where = "NAME LIKE '%'";
         //query.num = 20;
         //query.outFields = ["FID", "NAME", "POP2012"];
