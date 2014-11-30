@@ -1,33 +1,20 @@
 var app;
 
-require(["esri/Color",
-  "dojo/string",
-  "dijit/registry",
-
+require([
+  "esri/Color",
   "esri/config",
   "esri/map",
-  "esri/layers/ArcGISDynamicMapServiceLayer",
   "esri/graphic",
-  "esri/tasks/FeatureSet",
   "esri/symbols/SimpleLineSymbol",
   "esri/symbols/SimpleFillSymbol",
-  "esri/urlUtils",
   "esri/geometry/Polygon",
   "esri/geometry/Point",
-  "esri/layers/FeatureLayer",
   "esri/tasks/query",
-  "esri/tasks/QueryTask",
-  "esri/layers/GraphicsLayer"
+  "esri/tasks/QueryTask"
   ],
-function(Color, string, registry, esriConfig, Map, ArcGISDynamicMapServiceLayer,
-  Graphic, FeatureSet, SimpleLineSymbol, SimpleFillSymbol,
-  urlUtils, Polygon, Point, FeatureLayer, Query, QueryTask, GraphicsLayer){
-
-  //Proxy Boilerplate
-  urlUtils.addProxyRule({
-    urlPrefix: "http://sampleserver1.arcgisonline.com",
-    proxyUrl: "http://localhost/PHP/proxy.php"
-  });
+function(Color, esriConfig, Map,
+  Graphic, SimpleLineSymbol, SimpleFillSymbol,
+  Polygon, Point, Query, QueryTask){
 
   esriConfig.defaults.io.proxyUrl = "/proxy";
   esriConfig.defaults.io.alwaysUseProxy = false;
@@ -40,13 +27,14 @@ function(Color, string, registry, esriConfig, Map, ArcGISDynamicMapServiceLayer,
     this.maxNumberOfGuesses = max;
     this.score = 0;
     this.guesses = 0;
+    this.currentPop = 0;
   }
 
   // Create Map
   map = new Map("mapDiv", { 
-    basemap: "gray", 
+    basemap: "hybrid", 
     center: [5, 50],
-    zoom: 9
+    zoom: 8
   });
 
   map.on("load", init);
@@ -75,6 +63,7 @@ function(Color, string, registry, esriConfig, Map, ArcGISDynamicMapServiceLayer,
     var g = new Game(MAX_NUMBER_OF_GUESSES);
     pickRegion(function(population) {
       console.log(population);
+      game.currentPop = population;
     });
   }
 

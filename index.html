@@ -2,41 +2,214 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
-      on iOS devices-->
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no"/>
-    <title>GP Task Population Zonal Stats</title>
-
+    <title>PopGuessr</title>
     <link rel="stylesheet" href="http://js.arcgis.com/3.11/dijit/themes/claro/claro.css">
     <link rel="stylesheet" href="http://js.arcgis.com/3.11/esri/css/esri.css">
     <style>
       html, body, #mapDiv {
-        height: 100%;
+        height: 400px;
         margin: 0;
         padding: 0;
         width: 100%;
       }
-      #info {
-        bottom: 20px;
-        color: #444;
-        height: auto;
-        font-family: arial;
-        left: 20px;
-        margin: 5px;
-        padding: 10px;
-        position: absolute;
-        text-align: left;
-        width: 200px;
-        z-index: 40;
+      #header, #footer {
+        text-align: center;
+      }
+      #form {
+        padding: 20px;
+        text-align: center;
+      }
+      .game-panel {
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-left: 20px;
+      }
+      .game-panel i {
+        font-size: 30px;
+        line-height: 50px;
+        color: #999;
+      }
+      .game-panel form span {
+        height: 50px;
+      }
+      .game-panel .welcome {
+        font-size: 26px;
+        text-align: center;
+        margin-left: 0;
+      }
+      .game-panel form input {
+        height: 70px;
+        text-align: center;
+      }
+      .game-panel p {
+        font-size: 13px;
+        font-weight: 200;
+        margin-left: 25%;
+      }
+      .game-panel h1 {
+        text-align: center;
+      }
+      #input-form {
+        padding: 5px;
+        margin-top: 10px;
       }
     </style>
 
-    <script>var dojoConfig = { parseOnLoad: true };</script>
     <script src="http://js.arcgis.com/3.11/"></script>
-    <script src="popguessr.js"></script>
+    <script src="js/vendor/jquery.js"></script>
+    <script>
+    var app;
+
+    require([
+      "esri/Color",
+      "esri/config",
+      "esri/map",
+      "esri/graphic",
+      "esri/symbols/SimpleLineSymbol",
+      "esri/symbols/SimpleFillSymbol",
+      "esri/geometry/Polygon",
+      "esri/geometry/Point",
+      "esri/tasks/query",
+      "esri/tasks/QueryTask"
+      ],
+    function(Color, esriConfig, Map,
+      Graphic, SimpleLineSymbol, SimpleFillSymbol,
+      Polygon, Point, Query, QueryTask){
+
+      esriConfig.defaults.io.proxyUrl = "/proxy";
+      esriConfig.defaults.io.alwaysUseProxy = false;
+
+      var map, regions, game;
+
+      var MAX_NUMBER_OF_GUESSES = 10;
+
+      function Game(max) {
+        this.maxNumberOfGuesses = max;
+        this.score = 0;
+        this.guesses = 0;
+        this.currentPop = 0;
+      }
+
+      // Create Map
+      map = new Map("mapDiv", { 
+        basemap: "hybrid", 
+        center: [5, 50],
+        zoom: 8
+      });
+
+      map.on("load", init);
+
+      function init() {
+        $(function() {
+          $("#guess").keypress(guess);
+          getRegions(startRound);
+        });
+      }
+
+      function getRegions(callback) {
+        // Dirty hack - gets all regions, will do once at start of code
+        var query = new Query();
+        var queryTask = new QueryTask("http://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/usa_cbsa/FeatureServer/0");
+
+        query.where = "NAME LIKE '%'";
+        query.num = 20;
+        query.outFields = ["NAME", "POP2012"];
+        query.returnGeometry = true;
+
+        queryTask.execute(query, function(args) {
+          regions = args.features;
+          callback();
+        });
+      }
+
+      function startRound() {
+        game = new Game(MAX_NUMBER_OF_GUESSES);
+        pickRegion(function(population) {
+          console.log(population);
+          game.currentPop = population;
+        });
+      }
+
+      function guess(e) {
+        if (e.keyCode != 13) return;
+        if (!$("#guess").val()) return;
+
+        console.log($("#guess"));
+        var number = Math.abs(game.currentPop - parseInt($("#guess").val()));
+        console.log(number);
+        game.score += number;
+        game.guesses += 1;
+        if (game.guesses < MAX_NUMBER_OF_GUESSES) {
+          startRound();
+        }
+      }
+
+      function pickRegion(callback) {
+        var numOfRegions = regions.length;
+        var rand = Math.floor((Math.random() * numOfRegions));
+        var region = regions[rand];
+        var p = region.geometry.getCentroid();
+
+        map.centerAt(p);
+
+        map.graphics.clear();
+            
+        var symbol = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol("solid", new Color([255,0,0]), 4), new Color([255,255,0,0.25]));
+        var graphic = new Graphic(region.geometry,symbol);
+
+        map.graphics.add(graphic);
+
+        callback(region.attributes.POP2012);
+      }
+
+    });
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="css/foundation.min.css">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css">
   </head>
 
   <body class="claro">
-    <div id="mapDiv"></div>
+    <div class="row">
+      <div class="large-12 columns" id="header">
+        <h1><b>PopGuessr </b><small>Demographically stimulating.</small></h1>
+        <hr/>
+      </div>
+    </div>
+   
+    <div class="row">
+      <div class="large-8 columns" role="content">
+        <div class="row">
+          <div id="mapDiv"></div>
+        </div>
+      </div>
+      <div class="large-4 columns">
+        <div class="row">
+          <div class="game-panel">
+            <form>
+              <input id="guess" type="number" pattern="integer" placeholder="Have a think about it.">
+            </form>
+          </div>
+        </div> 
+      </div>
+    </div>
+   
+    <footer class="row">
+      <div class="large-12 columns">
+        <hr/>
+        <div class="row">
+          <div class="large-12 columns" id="footer">
+            <p>Richard Appleby 2014</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  <script src="js/foundation/foundation.js"></script>
+  <script>
+    $(document).foundation();
+  </script>  
+
   </body>
 </html>
